@@ -17,7 +17,7 @@ except ImportError:
 __all__ = ["corner", "hist2d", "quantile"]
 
 
-def corner(xs, bins=20, range=None, weights=None, color="k", hist_bin_factor=1,
+def corner(xs, bins=20, range=None, weights=None, axweights=None, color="k", hist_bin_factor=1,
            smooth=None, smooth1d=None,
            labels=None, label_kwargs=None,
            show_titles=False, title_fmt=".2f", title_kwargs=None,
@@ -45,6 +45,11 @@ def corner(xs, bins=20, range=None, weights=None, color="k", hist_bin_factor=1,
     weights : array_like[nsamples,]
         The weight of each sample. If `None` (default), samples are given
         equal weight.
+
+    axweights : array_like[bins, ndim]
+        The weight given to samples based on their value along one axis. If 
+        `None` (default), all axis values are given equal weight. Currently only  
+        supported when nbins is a fixed value for all dimensions.
 
     color : str
         A ``matplotlib`` style color for all histograms.
@@ -164,6 +169,20 @@ def corner(xs, bins=20, range=None, weights=None, color="k", hist_bin_factor=1,
             raise ValueError("Weights must be 1-D")
         if xs.shape[1] != weights.shape[0]:
             raise ValueError("Lengths of weights must match number of samples")
+    
+    # Parse the axis weight array.
+    if axweights is not None:
+        axweights = np.asarray(axweights)
+        if axweights.ndim != 2:
+            raise ValueError("Axis weights must be 2-D")
+        if isinstance(bins, (list, tuple, np.ndarray)):
+            raise ValueError("Axis weights only supported for a fixed number of bins")
+        if isinstance(hist_bin_factor, (list, tuple, np.ndarray)):
+            raise ValueError("Axis weights only supported for a fixed number of bins")
+        if int(bins*hist_bin_factor) != axweights.shape[0]:
+            raise ValueError("Length of axis weight columns must match number of bins in histograms")
+        if xs.shape[0] != axweights.shape[1]:
+            raise ValueError("Length of axis weight rows must match number of dimensions")
 
     # Parse the parameter ranges.
     if range is None:
@@ -257,15 +276,33 @@ def corner(xs, bins=20, range=None, weights=None, color="k", hist_bin_factor=1,
                 ax = axes[K-i-1, K-i-1]
             else:
                 ax = axes[i, i]
+        # Deal with axis weights
+        binmin, binmax = np.sort(range[i]) 
+        binEdges = np.linspace(binmin, binmax, max(1, np.round(hist_bin_factor[i] * bins[i])))
+        if weights is None:
+            w = np.ones(len(x))
+        else:
+            w = weights
+        if axweights[i] is None:
+            axw = np.ones(len(x))
+        else:
+            for j in range(0, len(x)):
+                 idx = np.abs(x[j]-binEdges).idxmin()
+                 if binEdges[idx] > x[j]:
+                   idx = idx - 1
+                 axw[j] = axweights[i][idx]
+
+        Weights = w * axw 
+
         # Plot the histograms.
         if smooth1d is None:
             bins_1d = int(max(1, np.round(hist_bin_factor[i] * bins[i])))
-            n, _, _ = ax.hist(x, bins=bins_1d, weights=weights,
+            n, _, _ = ax.hist(x, bins=bins_1d, weights=Weights,
                               range=np.sort(range[i]), **hist_kwargs)
         else:
             if gaussian_filter is None:
                 raise ImportError("Please install scipy for smoothing")
-            n, b = np.histogram(x, bins=bins[i], weights=weights,
+            n, b = np.histogram(x, bins=bins[i], weights=Weights,
                                 range=np.sort(range[i]))
             n = gaussian_filter(n, smooth1d)
             x0 = np.array(list(zip(b[:-1], b[1:]))).flatten()
@@ -277,7 +314,7 @@ def corner(xs, bins=20, range=None, weights=None, color="k", hist_bin_factor=1,
 
         # Plot quantiles if wanted.
         if len(quantiles) > 0:
-            qvalues = quantile(x, quantiles, weights=weights)
+            qvalues = quantile(x, quantiles, weights=Weights)
             for q in qvalues:
                 ax.axvline(q, ls="dashed", color=color)
 
@@ -291,7 +328,7 @@ def corner(xs, bins=20, range=None, weights=None, color="k", hist_bin_factor=1,
                 # Compute the quantiles for the title. This might redo
                 # unneeded computation but who cares.
                 q_16, q_50, q_84 = quantile(x, [0.16, 0.5, 0.84],
-                                            weights=weights)
+                                            weights=Weights)
                 q_m, q_p = q_50-q_16, q_84-q_50
 
                 # Format the quantile display.
@@ -366,8 +403,19 @@ def corner(xs, bins=20, range=None, weights=None, color="k", hist_bin_factor=1,
             # Deal with masked arrays.
             if hasattr(y, "compressed"):
                 y = y.compressed()
+        
+            if axweights[j] is None:
+                axw2 = np.ones(len(y))
+            else:
+                for k in range(0, len(x)):
+                     idy = np.abs(y[k]-binEdges).idxmin()
+                     if binEdges[idy] > y[k]:
+                         idy = idy - 1
+                     axw2[k] = axweights[j][idy]
 
-            hist2d(y, x, ax=ax, range=[range[j], range[i]], weights=weights,
+            Weights = w * axw * axw2 
+
+            hist2d(y, x, ax=ax, range=[range[j], range[i]], weights=Weights,
                    color=color, smooth=smooth, bins=[bins[j], bins[i]],
                    **hist2d_kwargs)
 
