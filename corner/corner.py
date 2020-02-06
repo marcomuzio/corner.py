@@ -286,7 +286,7 @@ def corner(xs, bins=20, range=None, weights=None, axweights=None, color="k", his
         if axweights[i] is None:
             axw = np.ones(len(x))
         else:
-            for j in range(0, len(x)):
+            for j, _ in enumerate(x):
                  idx = np.abs(x[j]-binEdges).idxmin()
                  if binEdges[idx] > x[j]:
                    idx = idx - 1
@@ -407,7 +407,7 @@ def corner(xs, bins=20, range=None, weights=None, axweights=None, color="k", his
             if axweights[j] is None:
                 axw2 = np.ones(len(y))
             else:
-                for k in range(0, len(x)):
+                for k, _ in enumerate(x):
                      idy = np.abs(y[k]-binEdges).idxmin()
                      if binEdges[idy] > y[k]:
                          idy = idy - 1
