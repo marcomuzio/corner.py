@@ -283,9 +283,8 @@ def corner(xs, bins=20, range=None, weights=None, axweights=None, color="k", his
             w = np.ones(len(x))
         else:
             w = weights
-        if axweights[i] is None:
-            axw = np.ones(len(x))
-        else:
+        axw = np.ones(len(x))
+        if axweights[i] is not None:
             for j, _ in enumerate(x):
                  idx = np.abs(x[j]-binEdges).argmin()
                  if binEdges[idx] > x[j]:
@@ -404,9 +403,8 @@ def corner(xs, bins=20, range=None, weights=None, axweights=None, color="k", his
             if hasattr(y, "compressed"):
                 y = y.compressed()
         
-            if axweights[j] is None:
-                axw2 = np.ones(len(y))
-            else:
+            axw2 = np.ones(len(y))
+            if axweights[j] is not None:
                 for k, _ in enumerate(x):
                      idy = np.abs(y[k]-binEdges).argmin()
                      if binEdges[idy] > y[k]:
