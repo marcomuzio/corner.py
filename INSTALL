@@ -1,4 +1,4 @@
 To install this version of corner.py:
 
 1) Merge this code with the git repository
-2) Type: pip install --user git+[url to repository]
+2) Type: pip install --user --upgrade git+[url to repository]
