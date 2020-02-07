@@ -289,7 +289,6 @@ def corner(xs, bins=20, range=None, weights=None, axweights=None, color="k", his
                  idx = np.abs(x[j]-binEdges).argmin()
                  if binEdges[idx] > x[j]:
                    idx = idx - 1
-                 print(i, j, idx)
                  axw[j] = axweights[idx][i]
 
         Weights = w * axw 
