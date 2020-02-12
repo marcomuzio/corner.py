@@ -404,7 +404,7 @@ def corner(xs, bins=20, range=None, weights=None, axweights=None, color="k", his
                 y = y.compressed()
         
             axw2 = np.ones(len(y))
-            if axweights[j] is not None:
+            if axweights is not None:
                 for k, _ in enumerate(x):
                      idy = np.abs(y[k]-binEdges).argmin()
                      if binEdges[idy] > y[k]:
